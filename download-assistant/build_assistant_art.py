@@ -1,10 +1,11 @@
-"""Generates the artwork of Otzaria's Windows download assistant (installer/download_assistant.iss).
+"""Generates the artwork of Otzaria's Windows download assistant (installer/download_assistant.iss) and of
+the app installers that share its UI (installer/otzaria.iss, installer/otzaria_full.iss).
 
-Output (one flat folder, see --out): every PNG of the assistant, named `<asset>_<scale>.png` — the UI kit
+Output (one flat folder, see --out): every PNG of both, named `<asset>_<scale>.png` — the UI kit
 (caption buttons, buttons, 3-slice cards, radio/check, icon tiles, step dots, progress bar, field frames,
-badges) for every DPI scale in SCALES, and the book-opening frames of the welcome page and the faded
-title blocks (Hebrew `title_N`, English `title_en_N`) only at BOOK_SRC_SCALE / TITLE_SRC_SCALE (Inno's
-TBitmapImage shrinks them with Stretch) —
+badges, logos) for every DPI scale in SCALES, and the book-opening frames of the welcome page and the
+faded title blocks (assistant: Hebrew `title_N`, English `title_en_N`; installer: `title_inst_N`,
+`title_inst_en_N`) only at BOOK_SRC_SCALE / TITLE_SRC_SCALE (Inno's TBitmapImage shrinks them with Stretch) —
 plus `assistant_art.isi`, an Inno Setup include with #define constants (frame
 count, every asset's 100% size, the scale list, the welcome-sequence timings). The Inno code must take
 its numbers from that include, so art and code cannot drift. Everything is drawn supersampled and
@@ -26,6 +27,7 @@ from __future__ import annotations
 import argparse
 import math
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -42,7 +44,7 @@ def rgb(hex_colour: str) -> tuple[int, int, int]:
 # Tunables. Sizes and positions are in 100%-DPI units; colours are sRGB.
 # =====================================================================================================
 
-ART_VERSION = "1.4.0"
+ART_VERSION = "1.5.0"
 SCALES = (100, 125, 150, 175, 200, 250)
 # The book and the title ship only at this scale; Inno shrinks them for every other scale (SPLINE16,
 # measured 44.5-46.8 dB vs native frames). Only shrink: enlarging 200 -> 250 measured 34.9 dB.
@@ -89,6 +91,13 @@ TITLE_EN = "Otzaria Download Assistant"   # title_en_N, left to right
 SUBTITLE_EN = "Free Torah Library"
 TITLE_EN_PX, SUBTITLE_EN_PX = 21, 15      # Latin optically matched to the Hebrew lines (same title width)
 TITLE_ORNAMENT_GAP = 14          # from each text's ink to the ornament's centre line
+# The app installer's title block (title_inst_N, title_inst_en_N): same size, steps and subtitles. The
+# one-word name is larger than the assistant's phrase, like the app's About header.
+TITLE_INST = "אוצריא"
+TITLE_INST_EN = "Otzaria"
+TITLE_INST_PX, TITLE_INST_EN_PX = 32, 30   # Latin optically matched: same ink width as the Hebrew word
+PREVIEW_INST_NOTE, PREVIEW_INST_BUTTON = ("גרסה 1.0.0",), "התקנה"
+PREVIEW_INST_NOTE_EN, PREVIEW_INST_BUTTON_EN = ("Version 1.0.0",), "Install"
 PREVIEW_NOTE = ("כלי זה אינו מתקין את אוצריא — הוא מוריד את הקבצים", "ומכין מהם התקנה, גם למחשב בלי אינטרנט.")
 PREVIEW_BUTTON = "בואו נתחיל"
 PREVIEW_NOTE_EN = ("This tool doesn't install Otzaria. It downloads the files",
@@ -101,6 +110,7 @@ MARGIN = 24
 BOOK_SIZE = 220
 TITLE_SIZE = (352, 100)
 MARK_SIZE, LOGO_SIZE = 16, 56
+LOGO_SM_SIZE = 40              # logo_sm: the installer's compact update window, beside a two-line heading
 CAPTION_SIZE = (46, 32)        # window_manager's WindowCaption buttons; also the title bar height
 BUTTONS = {"primary": (160, 40), "wide": (352, 44), "ghost": (120, 40), "outline": (120, 40),
            "tonal": (120, 40), "tonalwide": (352, 40)}
@@ -175,6 +185,21 @@ ICONS = {                                     # (style, codepoint, design size):
     "preset_custom": ("Regular", 62856, 24),  # options_24
     "folder": ("Regular", 62511, 24),         # folder_open_24
     "component": ("Regular", 59882, 24),      # puzzle_piece_24
+    # app installer
+    "only_me": ("Regular", 62910, 24),        # person_24
+    "all_users": ("Regular", 62889, 24),      # people_24
+    "portable": ("Regular", 63552, 24),       # usb_stick_24
+    "install_folder": ("Regular", 62489, 24),  # folder_24 (the app's library-location tile)
+    "books_folder": ("Regular", 62675, 24),   # library_24 (the app's library tab)
+    "desktop_shortcut": ("Regular", 62298, 24),  # desktop_24
+    "start_menu": None,                       # four panes: the Start button
+    "calendar_shortcut": ("Otzaria", 0xE04B, 24),  # OtzariaIcons.calendar_24_regular
+    "reset_settings": ("Regular", 61856, 24),  # arrow_reset_24 (the app's "reset settings")
+    "webview2": ("Regular", 62555, 24),       # globe_24
+    "update": ("Regular", 61841, 24),         # arrow_sync_24 (the app's "update available")
+    "launch": ("Regular", 62851, 24),         # open_24
+    "app": ("Otzaria", 0xE02A, 24),           # OtzariaIcons.otzaria_icon_24_regular (the app's About)
+    "warning": ("Regular", 63594, 24),        # warning_24
 }
 
 # --- inputs
@@ -329,8 +354,9 @@ def glyph(icon: tuple, size: float, color: tuple) -> Image.Image:
 
 
 def hebrew(text: str) -> str:
-    """Visual order of a Hebrew line (Pillow without raqm lays text out left to right)."""
-    return text[::-1]
+    """Visual order of a Hebrew line (Pillow without raqm lays text out left to right); numbers keep
+    their own left-to-right order."""
+    return re.sub(r"[0-9][0-9.]*", lambda m: m.group()[::-1], text[::-1])
 
 
 def text_image(text: str, f: ImageFont.FreeTypeFont, color: tuple, rtl: bool = True) -> Image.Image:
@@ -678,15 +704,17 @@ def book_frames(scale: int) -> list[Image.Image]:
 
 # ---------------------------------------------------------------- title block
 
-def title_frames(scale: int, english: bool = False) -> list[Image.Image]:
+def title_frames(scale: int, english: bool = False, installer: bool = False) -> list[Image.Image]:
     """Title, a small gold ornament and the subtitle, centred as a group; frame n has alpha step n."""
     c = Canvas(*TITLE_SIZE, scale)
     u = c.u
     if english:
-        title = text_image(TITLE_EN, ui_font(TITLE_EN_PX * u, semibold=True), TEXT, rtl=False)
+        text, size = (TITLE_INST_EN, TITLE_INST_EN_PX) if installer else (TITLE_EN, TITLE_EN_PX)
+        title = text_image(text, ui_font(size * u, semibold=True), TEXT, rtl=False)
         sub = text_image(SUBTITLE_EN, ui_font(SUBTITLE_EN_PX * u), MUTED, rtl=False)
     else:
-        title = text_image(TITLE, ui_font(TITLE_PX * u, semibold=True), TEXT)
+        text, size = (TITLE_INST, TITLE_INST_PX) if installer else (TITLE, TITLE_PX)
+        title = text_image(text, ui_font(size * u, semibold=True), TEXT)
         sub = text_image(SUBTITLE, ui_font(SUBTITLE_PX * u), MUTED)
     t_box, s_box = title.getchannel("A").getbbox(), sub.getchannel("A").getbbox()
     # Latin descenders hang below the group, as the eye centres on the baseline.
@@ -917,7 +945,8 @@ def badges(scale: int) -> dict[str, Image.Image]:
 
 
 def marks(scale: int) -> dict[str, Image.Image]:
-    return {"mark": logo_fit(px(MARK_SIZE, scale)), "logo": logo_fit(px(LOGO_SIZE, scale), 0.03)}
+    return {"mark": logo_fit(px(MARK_SIZE, scale)), "logo": logo_fit(px(LOGO_SIZE, scale), 0.03),
+            "logo_sm": logo_fit(px(LOGO_SM_SIZE, scale), 0.03)}
 
 
 # ---------------------------------------------------------------- output
@@ -932,6 +961,10 @@ def assets_for(scale: int) -> dict[str, Image.Image]:
             out[f"title_{i}"] = im
         for i, im in enumerate(title_frames(scale, english=True)):
             out[f"title_en_{i}"] = im
+        for i, im in enumerate(title_frames(scale, installer=True)):
+            out[f"title_inst_{i}"] = im
+        for i, im in enumerate(title_frames(scale, english=True, installer=True)):
+            out[f"title_inst_en_{i}"] = im
     out.update(marks(scale))
     for kind in ("close", "min"):
         out[f"cap_{kind}"] = caption(kind, False, scale)
@@ -981,6 +1014,8 @@ def isi_text() -> str:
         f"#define AA_TITLE_SRC_SCALE {TITLE_SRC_SCALE}",
         "; title_en_N: the English title block, same size, steps and scale as title_N",
         "#define AA_TITLE_EN 1",
+        "; title_inst_N, title_inst_en_N: the app installer's title blocks, same size, steps and scale",
+        "#define AA_TITLE_INST 1",
         "; welcome sequence (ms, 100% units)",
         f"#define AA_BOOK_FRAMES {BOOK_FRAMES}",
         f"#define AA_BOOK_FPS {BOOK_FPS}",
@@ -1003,6 +1038,7 @@ def isi_text() -> str:
         f"#define AA_MARK_SIZE {MARK_SIZE}",
         f"#define AA_TITLE_BAR_H {CAPTION_SIZE[1]}",
         f"#define AA_LOGO_SIZE {LOGO_SIZE}",
+        f"#define AA_LOGO_SM_SIZE {LOGO_SM_SIZE}",
         *size("CAP", CAPTION_SIZE),
         *(line for name, wh in BUTTONS.items() for line in size(f"BTN_{name.upper()}", wh)),
         f"#define AA_CARD_W {CARD_W}",
@@ -1074,13 +1110,18 @@ def load_art(art: Path, name: str, scale: int) -> Image.Image:
     return im if src == scale else im.resize((px(w, scale), px(h, scale)), Image.LANCZOS)
 
 
-def welcome_frames(art: Path, scale: int, english: bool = False) -> list[tuple[Image.Image, int]]:
+def welcome_frames(art: Path, scale: int, english: bool = False,
+                   installer: bool = False) -> list[tuple[Image.Image, int]]:
     """The welcome sequence as the Inno code plays it, sampled at ~30 fps: (frame, duration ms).
     English is laid out left to right: caption on the left, minimize and close at the right edge."""
     k = scale / 100
     rtl = not english
-    caption_text, note, start = ((TITLE_EN, PREVIEW_NOTE_EN, PREVIEW_BUTTON_EN) if english
-                                 else (TITLE, PREVIEW_NOTE, PREVIEW_BUTTON))
+    if installer:
+        caption_text, note, start = ((TITLE_INST_EN, PREVIEW_INST_NOTE_EN, PREVIEW_INST_BUTTON_EN) if english
+                                     else (TITLE_INST, PREVIEW_INST_NOTE, PREVIEW_INST_BUTTON))
+    else:
+        caption_text, note, start = ((TITLE_EN, PREVIEW_NOTE_EN, PREVIEW_BUTTON_EN) if english
+                                     else (TITLE, PREVIEW_NOTE, PREVIEW_BUTTON))
 
     def load(name: str) -> Image.Image:
         return load_art(art, name, scale)
@@ -1112,7 +1153,8 @@ def welcome_frames(art: Path, scale: int, english: bool = False) -> list[tuple[I
     footer.alpha_composite(t, ((win.width - t.width) // 2, at(BUTTON_TOP) + (button.height - t.height) // 2))
 
     books = [load(f"book_{i:02d}") for i in range(BOOK_FRAMES)]
-    titles = [load(f"title_{'en_' if english else ''}{i}") for i in range(TITLE_STEPS)]
+    prefix = "title_" + ("inst_" if installer else "") + ("en_" if english else "")
+    titles = [load(f"{prefix}{i}") for i in range(TITLE_STEPS)]
     t_book = PAGE_FADE_MS
     t_rise = t_book + RISE_START_FRAME * 1000 / BOOK_FPS
     t_title = max(t_rise + RISE_MS, t_book + BOOK_FRAMES * 1000 / BOOK_FPS)
@@ -1181,10 +1223,10 @@ def contact_sheet(art: Path, path: Path, scale: int = 200) -> None:
 
     for i in range(BOOK_FRAMES):
         items.append((f"book_{i:02d}", load(f"book_{i:02d}")))
-    for prefix in ("title_", "title_en_"):
+    for prefix in ("title_", "title_en_", "title_inst_", "title_inst_en_"):
         for i in range(TITLE_STEPS):
             items.append((f"{prefix}{i}", load(f"{prefix}{i}")))
-    for name in ("mark", "logo", "cap_close", "cap_closeh", "cap_min", "cap_minh"):
+    for name in ("mark", "logo", "logo_sm", "cap_close", "cap_closeh", "cap_min", "cap_minh"):
         items.append((name, load(name)))
     for kind, states in (("primary", "nhpd"), ("wide", "nhpd"), ("ghost", "nhp"), ("outline", "nhpd"),
                          ("tonal", "nhpd"), ("tonalwide", "nhpd")):
@@ -1247,9 +1289,11 @@ def contact_sheet(art: Path, path: Path, scale: int = 200) -> None:
 
 def write_preview(art: Path, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
-    for scale, name, english in ((100, "welcome.gif", False), (200, "welcome@2x.gif", False),
-                                 (100, "welcome_en.gif", True), (200, "welcome_en@2x.gif", True)):
-        save_gif(welcome_frames(art, scale, english), out_dir / name)
+    for scale, name, english, installer in (
+            (100, "welcome.gif", False, False), (200, "welcome@2x.gif", False, False),
+            (100, "welcome_en.gif", True, False), (200, "welcome_en@2x.gif", True, False),
+            (100, "welcome_inst.gif", False, True), (100, "welcome_inst_en.gif", True, True)):
+        save_gif(welcome_frames(art, scale, english, installer), out_dir / name)
     contact_sheet(art, out_dir / "contact_sheet.png")
     print(f"preview -> {out_dir}")
 

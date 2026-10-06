@@ -2,6 +2,31 @@
 
 הגרסה נקבעת בקבוע `ART_VERSION` בראש `build_assistant_art.py` ומגיעה לריפו הראשי כ-`AA_ART_VERSION`.
 
+## 1.5.0 — 2026-10-06
+
+הגרפיקה משרתת מעכשיו גם את **מתקיני אוצריא** (`installer/otzaria.iss`, ‏`installer/otzaria_full.iss`), שמקבלים
+את שפת התצוגה של המסייע. אותו zip ואותה גרסה לשני המוצרים; שמות הקבצים וה-zip לא השתנו.
+
+- **בלוק כותרת למתקין** — `title_inst_0`..`title_inst_7` ("אוצריא" / "ספרייה תורנית חינמית")
+  ו-`title_inst_en_0`..`title_inst_en_7` ("Otzaria" / "Free Torah Library"). אותו גודל (352×100), אותם שמונה שלבי
+  דהייה, אותו קישוט ורק ב-250%, כמו `title_N`. שם המוצר ב-Segoe UI Semibold בגודל 32 (באנגלית 30, באותו
+  רוחב דיו כמו המילה העברית); שורת המשנה זהה לזו של המסייע. הגדרה חדשה ב-`.isi`: `AA_TITLE_INST 1`.
+- **`logo_sm`** — הלוגו בגודל 40×40 (כמו אריח אייקון), לחלון העדכון השקט הקומפקטי (400×≈260): לצד כותרת
+  בשתי שורות. `logo` (‏56) גבוה מדי לשורה כזו, ו-`mark` (‏16) נועד לסרגל הכותרת. ב-`.isi`: `AA_LOGO_SM_SIZE 40`.
+- **14 אריחי אייקון למתקין**, נוספו לסוף `AA_ICON_NAMES`: `only_me` (person), ‏`all_users` (people),
+  `portable` (usb_stick), ‏`install_folder` (folder), ‏`books_folder` (library), ‏`desktop_shortcut` (desktop),
+  `start_menu` (ארבע המשבצות המצוירות, כפתור "התחל"), ‏`calendar_shortcut` (`OtzariaIcons.calendar_24_regular`),
+  `reset_settings` (arrow_reset), ‏`webview2` (globe), ‏`update` (arrow_sync), ‏`launch` (open),
+  `app` (`OtzariaIcons.otzaria_icon_24_regular`), ‏`warning` (warning). היכן שלתוכנה יש אייקון לאותו עניין,
+  נבחר האייקון שלה. ארבעה מהם זהים בבתים לאייקון קיים בשם אחר (`books_folder` = `preset_full`,
+  `desktop_shortcut` = `this_pc`, ‏`start_menu` = `windows`, ‏`update` = `preset_update`): השם לפי המשמעות, כדי
+  שהמתקין לא יהיה תלוי בשמות של עמודי המסייע. `install_folder` (תיקייה סגורה) שונה מ-`folder` (תיקייה פתוחה).
+- **שים לב למסייע:** `title_*_250.png` בתבנית ה-[Files] שלו תופס גם את `title_inst_*` (כ-300KB נוספים במסייע)
+  אם לא מוסיפים `Excludes`.
+- התצוגה המקדימה: `welcome_inst.gif` ו-`welcome_inst_en.gif`, והנכסים החדשים בדף הנכסים. מספרים בשורה
+  עברית בתצוגה המקדימה נשמרים בסדר שלהם.
+- שום נכס קיים לא השתנה: 508 הקבצים זהים בבתים ל-1.4.0, ונוספו 106 קבצים. סך הכול 614 קבצים.
+
 ## 1.4.0 — 2026-10-06
 
 - **אייקון חדש `ico_preset_full_indexed`** להצעה "התקנה מלאה + אינדקס חיפוש" (`full-indexed`): האייקון של

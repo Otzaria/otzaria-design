@@ -1,0 +1,8 @@
+out/
+preview/
+__pycache__/
+*.pyc
+*.zip
+.venv/
+venv/
+Thumbs.db

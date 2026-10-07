@@ -8,3 +8,4 @@
 | `presets_he_en.png` | עמוד "מה להוריד" ב-Windows x64 לפי מניפסט 0.9.98, עברית ואנגלית |
 | `installer_flow_he.png`, `installer_flow_en.png` | כל מסכי מתקין אוצריא בעיצוב החדש, עברית ואנגלית (כולל חלון העדכון המצומצם) |
 | `mac_assistant_he.png`, `mac_assistant_en.png` | מסייע ההורדות ל-macOS בעיצוב החדש (צילומי CI), עברית ואנגלית |
+| `linux_assistant_he.png`, `linux_assistant_en.png` | מסייע ההורדות ל-Linux בעיצוב החדש (צילומי CI), עברית ואנגלית |
